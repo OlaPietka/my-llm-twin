@@ -1,0 +1,44 @@
+# User identity — names as they appear in your exports
+user_names:
+  instagram: "your_instagram_display_name"
+  messenger: "Your Facebook Display Name"
+
+# Data paths (relative to project root)
+data:
+  raw_dir: "data/raw"
+  parsed_dir: "data/parsed"
+  dataset_dir: "data/dataset"
+
+# Parsing
+parsing:
+  source: "both"  # "instagram", "messenger", or "both"
+
+# Dataset building
+dataset:
+  conversation_timeout_minutes: 60
+  max_context_turns: 5
+  min_message_length: 1
+  message_separator: "<|msg|>"
+  train_val_split: 0.9
+
+# Training
+training:
+  base_model: "meta-llama/Llama-3.1-8B-Instruct"
+  output_dir: "models/my-twin"
+  lora_rank: 16
+  lora_alpha: 32
+  lora_target_modules: ["q_proj", "v_proj"]
+  learning_rate: 0.0002
+  batch_size: 4
+  gradient_accumulation_steps: 4
+  epochs: 3
+  max_seq_length: 512
+  precision: "bf16"
+
+# Inference
+inference:
+  adapter_path: "models/my-twin"
+  max_new_tokens: 256
+  temperature: 0.7
+  top_p: 0.9
+  repetition_penalty: 1.1

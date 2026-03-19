@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "my-llm-twin"
+version = "0.1.0"
+description = "Fine-tune an LLM on your DMs to create a digital twin that texts like you"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+dependencies = [
+    "typer>=0.9.0",
+    "pyyaml>=6.0",
+    "pydantic>=2.0",
+    "torch>=2.0",
+    "transformers>=4.40",
+    "peft>=0.10",
+    "datasets>=2.18",
+    "accelerate>=0.28",
+    "trl>=0.8",
+]
+
+[project.optional-dependencies]
+ui = ["gradio>=4.0"]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+my-llm-twin = "my_llm_twin.cli:app"
