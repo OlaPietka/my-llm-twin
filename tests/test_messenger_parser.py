@@ -90,6 +90,32 @@ def test_parse_message_fields(tmp_path):
     assert msg.source == "messenger"
 
 
+def test_parse_skips_call_events(tmp_path):
+    """Call events have content but should be filtered out."""
+    zip_path = tmp_path / "export.zip"
+    prefix = "your_facebook_activity/messages/inbox"
+
+    data = {
+        "title": "Carol",
+        "participants": [{"name": "Carol"}, {"name": "Me"}],
+        "messages": [
+            {"sender_name": "Carol", "timestamp_ms": 1000, "content": "hey"},
+            {"sender_name": "Carol", "timestamp_ms": 2000, "content": "You talked for 5 minutes", "call_duration": 300},
+            {"sender_name": "Me", "timestamp_ms": 3000, "content": "good call!"},
+        ],
+    }
+
+    with zipfile.ZipFile(zip_path, "w") as zf:
+        zf.writestr(f"{prefix}/carol_123/message_1.json", json.dumps(data))
+
+    parser = MessengerParser()
+    result = parser.parse(zip_path)
+
+    assert len(result["Carol"]) == 2
+    assert result["Carol"][0].content == "hey"
+    assert result["Carol"][1].content == "good call!"
+
+
 def test_parse_skips_group_chats(tmp_path):
     """Group conversations (3+ participants) are excluded."""
     zip_path = tmp_path / "export.zip"

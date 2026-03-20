@@ -49,6 +49,10 @@ class MessengerParser(BaseParser):
                 if not content:
                     continue
 
+                # skip call events — system-generated "you had a call" messages
+                if "call_duration" in raw_msg:
+                    continue
+
                 msg = Message(
                     sender=self._fix_encoding(raw_msg["sender_name"]),
                     content=self._fix_encoding(content),
