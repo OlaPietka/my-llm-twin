@@ -21,10 +21,17 @@ class ParsingConfig(BaseModel):
     language: str = "en"  # ISO 639-1 code, e.g. "en", "pl", "de"
 
 
+class DatasetConfig(BaseModel):
+    timeout_hours: float = 3.0  # silence gap to split conversation segments
+    max_context_turns: int = 10  # how many preceding turns to include
+    separator: str = "<|msg|>"  # joins consecutive messages from same sender
+
+
 class Config(BaseModel):
     user_names: UserNames
     data: DataPaths = DataPaths()
     parsing: ParsingConfig = ParsingConfig()
+    dataset: DatasetConfig = DatasetConfig()
 
 
 def load_config(path: Path) -> Config:
