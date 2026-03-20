@@ -51,6 +51,15 @@ def build_examples(
         start = max(0, i - max_context_turns)
         context = turns[start:i]
 
+        # Llama chat template expects "user" first after "system" —
+        # drop leading twin turns so context starts with the other person
+        while context and context[0][0] == user_name:
+            context = context[1:]
+
+        if not context:
+            # no context from the other person — skip this example
+            continue
+
         messages = [{"role": "system", "content": SYSTEM_PROMPT}]
         for ctx_sender, ctx_content in context:
             role = "assistant" if ctx_sender == user_name else "user"

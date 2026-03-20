@@ -33,7 +33,7 @@ class TrainingConfig(BaseModel):
     output_dir: str = "models/my-twin"
     lora_rank: int = 16
     lora_alpha: int = 32
-    lora_target_modules: list[str] = ["q_proj", "v_proj"]
+    lora_target_modules: list[str] = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
     learning_rate: float = 2e-4
     batch_size: int = 4
     gradient_accumulation_steps: int = 4
