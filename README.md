@@ -33,27 +33,15 @@ pip install -e .
 
 ## Setup
 
-Copy the example config and fill in your details:
+Run the interactive setup wizard:
 
 ```bash
-cp config.example.yaml config.yaml
+my-llm-twin init
 ```
 
-The main thing you need to set is your Facebook display name — the parser needs it to know which messages are yours:
+It will ask for your Messenger display name and target language, then create `config.yaml` for you.
 
-```yaml
-user_names:
-  messenger: "Your Facebook Display Name"
-```
-
-You can also set the language filter (defaults to parsing all languages):
-
-```yaml
-parsing:
-  language: "en"  # ISO 639-1 code — "en", "pl", "de", etc.
-```
-
-See `config.example.yaml` for all available options.
+All other settings (training hyperparameters, paths, etc.) use sensible defaults. Edit `config.yaml` directly if you need to tweak them.
 
 ## Export your DMs
 
