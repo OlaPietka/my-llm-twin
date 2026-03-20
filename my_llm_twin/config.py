@@ -17,7 +17,8 @@ class DataPaths(BaseModel):
 
 
 class ParsingConfig(BaseModel):
-    source: Literal["instagram", "messenger", "both"] = "both"
+    source: Literal["instagram", "messenger", "both"] = "messenger"
+    language: str = "en"  # ISO 639-1 code, e.g. "en", "pl", "de"
 
 
 class Config(BaseModel):

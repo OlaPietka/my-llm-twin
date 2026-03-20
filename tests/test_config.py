@@ -21,7 +21,8 @@ def test_defaults_applied():
         user_names={"instagram": "test", "messenger": "Test"},
     )
     assert config.data.raw_dir == "data/raw"
-    assert config.parsing.source == "both"
+    assert config.parsing.source == "messenger"
+    assert config.parsing.language == "en"
 
 
 def test_missing_user_names_raises():
