@@ -27,19 +27,15 @@ class BaseExtractor(ABC):
         """Glob patterns matching message files inside the zip."""
         ...
 
-    def _match_names(self, zf: zipfile.ZipFile) -> list[str]:
-        """Filter zip entries against our patterns."""
-        return [
-            name for name in zf.namelist()
-            if any(fnmatch.fnmatch(name, p) for p in self.patterns)
-        ]
-
     def find_message_files(self, zip_path: Path) -> list[str]:
         """
         List all matching message file paths inside the zip.
         """
         with zipfile.ZipFile(zip_path) as zf:
-            return self._match_names(zf)
+            return [
+                name for name in zf.namelist()
+                if any(fnmatch.fnmatch(name, p) for p in self.patterns)
+            ]
 
     def read_messages(self, zip_path: Path) -> Iterator[dict[str, Any]]:
         """
@@ -54,7 +50,7 @@ class BaseExtractor(ABC):
             raise FileNotFoundError(f"Zip file not found: {zip_path}")
 
         with zipfile.ZipFile(zip_path) as zf:
-            for name in self._match_names(zf):
+            for name in self.find_message_files(zip_path):
                 with zf.open(name) as f:
                     yield json.load(f)
 
