@@ -10,9 +10,32 @@ CONFIG_PATH = Path("config.yaml")
 
 
 @app.command()
-def init():
+def init(
+    config: Path = typer.Option(CONFIG_PATH, help="Path to write config.yaml"),
+):
     """Interactive config setup wizard."""
-    typer.echo("Not implemented yet.")
+    import yaml
+
+    if config.exists():
+        overwrite = typer.confirm(f"{config} already exists. Overwrite?", default=False)
+        if not overwrite:
+            raise typer.Exit()
+
+    messenger_name = typer.prompt("What's your Messenger display name?")
+    language = typer.prompt("Target language (ISO code)", default="en")
+
+    cfg = {
+        "user_names": {
+            "messenger": messenger_name,
+        },
+        "parsing": {
+            "source": "messenger",
+            "language": language,
+        },
+    }
+
+    config.write_text(yaml.dump(cfg, default_flow_style=False, allow_unicode=True))
+    typer.echo(f"Config saved to {config}")
 
 
 @app.command()
