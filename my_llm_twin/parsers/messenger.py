@@ -33,12 +33,15 @@ class MessengerParser(BaseParser):
         """
         Parse a Facebook Messenger export zip.
 
-        Returns conversations grouped by title, each sorted by timestamp.
-        Skips messages without text content (photos, videos, stickers, etc.).
+        Returns 1:1 conversations grouped by title, each sorted by timestamp.
+        Skips group chats and messages without text content.
         """
         conversations: dict[str, list[Message]] = defaultdict(list)
 
         for chunk in self._extractor.read_messages(zip_path):
+            if len(chunk.get("participants", [])) != 2:
+                continue
+
             title = self._fix_encoding(chunk["title"])
 
             for raw_msg in chunk.get("messages", []):

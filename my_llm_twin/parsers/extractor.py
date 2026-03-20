@@ -18,13 +18,13 @@ class BaseExtractor(ABC):
     """
     Reads message files from a platform export zip.
 
-    Subclasses define the glob pattern to match message files.
+    Subclasses define the glob patterns to match message files.
     """
 
     @property
     @abstractmethod
-    def pattern(self) -> str:
-        """Glob pattern matching message files inside the zip."""
+    def patterns(self) -> list[str]:
+        """Glob patterns matching message files inside the zip."""
         ...
 
     def find_message_files(self, zip_path: Path) -> list[str]:
@@ -34,7 +34,7 @@ class BaseExtractor(ABC):
         with zipfile.ZipFile(zip_path) as zf:
             return [
                 name for name in zf.namelist()
-                if fnmatch.fnmatch(name, self.pattern)
+                if any(fnmatch.fnmatch(name, p) for p in self.patterns)
             ]
 
     def read_messages(self, zip_path: Path) -> Iterator[dict[str, Any]]:
@@ -59,5 +59,8 @@ class FacebookExtractor(BaseExtractor):
     """Reads message JSONs from a Facebook/Messenger data export."""
 
     @property
-    def pattern(self) -> str:
-        return "your_facebook_activity/messages/inbox/*/message_*.json"
+    def patterns(self) -> list[str]:
+        return [
+            "your_facebook_activity/messages/inbox/*/message_*.json",
+            "your_facebook_activity/messages/e2ee_cutover/*/message_*.json",
+        ]

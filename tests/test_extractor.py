@@ -24,11 +24,17 @@ def make_test_zip(tmp_path: Path) -> Path:
             "participants": [{"name": "Alice"}],
             "messages": [{"sender_name": "Alice", "content": "sup"}],
         },
-        # other categories should be ignored
+        # e2ee_cutover — should also be included
         f"{prefix}/e2ee_cutover/bob_456/message_1.json": {
             "title": "Bob",
             "participants": [{"name": "Bob"}],
             "messages": [{"sender_name": "Bob", "content": "yo"}],
+        },
+        # filtered_threads — should be ignored
+        f"{prefix}/filtered_threads/spam_789/message_1.json": {
+            "title": "Spam",
+            "participants": [{"name": "Spam"}],
+            "messages": [{"sender_name": "Spam", "content": "buy stuff"}],
         },
         # metadata files should be ignored
         f"{prefix}/autofill_information.json": {"foo": "bar"},
@@ -55,11 +61,12 @@ def test_find_message_files(tmp_path, extractor):
     zip_path = make_test_zip(tmp_path)
     found = extractor.find_message_files(zip_path)
 
-    assert len(found) == 2
-    assert any("alice_123/message_1.json" in f for f in found)
-    assert any("alice_123/message_2.json" in f for f in found)
-    # other categories, metadata, and media should not be included
-    assert not any("e2ee_cutover" in f for f in found)
+    assert len(found) == 3
+    assert any("inbox/alice_123/message_1.json" in f for f in found)
+    assert any("inbox/alice_123/message_2.json" in f for f in found)
+    assert any("e2ee_cutover/bob_456/message_1.json" in f for f in found)
+    # filtered_threads, metadata, and media should not be included
+    assert not any("filtered_threads" in f for f in found)
     assert not any("autofill" in f for f in found)
     assert not any("photos" in f for f in found)
 
@@ -69,12 +76,11 @@ def test_read_messages(tmp_path, extractor):
 
     results = list(extractor.read_messages(zip_path))
 
-    assert len(results) == 2
-    # both should be from alice's inbox conversation
-    assert all(r["title"] == "Alice" for r in results)
-    contents = [r["messages"][0]["content"] for r in results]
-    assert "hey" in contents
-    assert "sup" in contents
+    assert len(results) == 3
+    titles = [r["title"] for r in results]
+    assert "Alice" in titles
+    assert "Bob" in titles
+    assert "Spam" not in titles
 
 
 def test_read_messages_is_lazy(tmp_path, extractor):
