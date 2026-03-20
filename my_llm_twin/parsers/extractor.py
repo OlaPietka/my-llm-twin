@@ -77,8 +77,8 @@ class FacebookExtractor(BaseExtractor):
 
     @property
     def pattern(self) -> str:
-        return "your_facebook_activity/messages/*/message_*.json"
+        return "your_facebook_activity/messages/inbox/*/message_*.json"
 
     @property
     def strip_prefix(self) -> str:
-        return "your_facebook_activity/messages/"
+        return "your_facebook_activity/messages/inbox/"

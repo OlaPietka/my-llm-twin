@@ -22,11 +22,12 @@ def make_test_zip(tmp_path: Path) -> Path:
             "participants": [{"name": "Alice"}],
             "messages": [{"sender_name": "Alice", "content": "sup"}],
         },
+        # other categories should be ignored
         f"{prefix}/e2ee_cutover/bob_456/message_1.json": {
             "participants": [{"name": "Bob"}],
             "messages": [{"sender_name": "Bob", "content": "yo"}],
         },
-        # metadata files that should be ignored
+        # metadata files should be ignored
         f"{prefix}/autofill_information.json": {"foo": "bar"},
         # media files that should be ignored
         f"{prefix}/inbox/alice_123/photos/pic.jpg": b"fake image",
@@ -51,11 +52,11 @@ def test_find_message_files(tmp_path, extractor):
     zip_path = make_test_zip(tmp_path)
     found = extractor.find_message_files(zip_path)
 
-    assert len(found) == 3
+    assert len(found) == 2
     assert any("alice_123/message_1.json" in f for f in found)
     assert any("alice_123/message_2.json" in f for f in found)
-    assert any("bob_456/message_1.json" in f for f in found)
-    # metadata and media should not be included
+    # other categories, metadata, and media should not be included
+    assert not any("e2ee_cutover" in f for f in found)
     assert not any("autofill" in f for f in found)
     assert not any("photos" in f for f in found)
 
@@ -66,18 +67,17 @@ def test_extract(tmp_path, extractor):
 
     extracted = extractor.extract(zip_path, output_dir)
 
-    assert len(extracted) == 3
+    assert len(extracted) == 2
 
-    # check files land in the right place with prefix stripped
-    alice_msg = output_dir / "inbox" / "alice_123" / "message_1.json"
+    # check files land in the right place with prefix stripped (no inbox/ in path)
+    alice_msg = output_dir / "alice_123" / "message_1.json"
     assert alice_msg.exists()
 
     data = json.loads(alice_msg.read_text())
     assert data["messages"][0]["content"] == "hey"
 
-    # e2ee_cutover category preserved
-    bob_msg = output_dir / "e2ee_cutover" / "bob_456" / "message_1.json"
-    assert bob_msg.exists()
+    # e2ee_cutover should NOT be extracted
+    assert not (output_dir / "bob_456").exists()
 
 
 def test_extract_nonexistent_zip(tmp_path, extractor):
