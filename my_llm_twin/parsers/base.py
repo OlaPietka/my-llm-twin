@@ -13,10 +13,11 @@ class Message:
 
 class BaseParser(ABC):
     @abstractmethod
-    def parse(self, path: Path) -> dict[str, list[Message]]:
-        """Parse export directory.
+    def parse(self, zip_path: Path) -> dict[str, list[Message]]:
+        """
+        Parse a platform export zip.
 
-        Returns a dict mapping conversation name to list of Messages,
+        Returns a dict mapping conversation title to list of Messages,
         sorted by timestamp.
         """
         ...
