@@ -25,6 +25,21 @@ class DatasetConfig(BaseModel):
     timeout_hours: float = 3.0  # silence gap to split conversation segments
     max_context_turns: int = 10  # how many preceding turns to include
     separator: str = "<|msg|>"  # joins consecutive messages from same sender
+    train_val_split: float = 0.9  # fraction of conversations for training
+
+
+class TrainingConfig(BaseModel):
+    base_model: str = "meta-llama/Llama-3.1-8B-Instruct"
+    output_dir: str = "models/my-twin"
+    lora_rank: int = 16
+    lora_alpha: int = 32
+    lora_target_modules: list[str] = ["q_proj", "v_proj"]
+    learning_rate: float = 2e-4
+    batch_size: int = 4
+    gradient_accumulation_steps: int = 4
+    epochs: int = 3
+    max_seq_length: int = 512
+    precision: str = "bf16"
 
 
 class Config(BaseModel):
@@ -32,6 +47,7 @@ class Config(BaseModel):
     data: DataPaths = DataPaths()
     parsing: ParsingConfig = ParsingConfig()
     dataset: DatasetConfig = DatasetConfig()
+    training: TrainingConfig = TrainingConfig()
 
 
 def load_config(path: Path) -> Config:

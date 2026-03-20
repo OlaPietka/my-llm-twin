@@ -66,6 +66,7 @@ def build_dataset(
 ):
     """Build training dataset from parsed messages."""
     import json
+    import random
 
     from my_llm_twin.dataset.builder import build_examples
     from my_llm_twin.dataset.segmenter import segment_conversation
@@ -82,7 +83,6 @@ def build_dataset(
 
     typer.echo(f"Loaded {len(conversations)} conversations from {parsed_dir}")
 
-    # figure out which user_name to use based on parsing source
     user_name = cfg.user_names.messenger
     if not user_name:
         typer.echo("No messenger user name set in config")
@@ -92,7 +92,16 @@ def build_dataset(
     separator = cfg.dataset.separator
     max_context_turns = cfg.dataset.max_context_turns
 
-    all_examples = []
+    # split conversations into train/val (conversation-level, not example-level)
+    titles = sorted(conversations.keys())
+    random.seed(42)
+    random.shuffle(titles)
+    split_idx = int(len(titles) * cfg.dataset.train_val_split)
+    train_titles = set(titles[:split_idx])
+    val_titles = set(titles[split_idx:])
+
+    train_examples = []
+    val_examples = []
     total_segments = 0
 
     for title, messages in conversations.items():
@@ -101,24 +110,50 @@ def build_dataset(
 
         for segment in segments:
             examples = build_examples(segment, user_name, separator, max_context_turns)
-            all_examples.extend(examples)
+            if title in train_titles:
+                train_examples.extend(examples)
+            else:
+                val_examples.extend(examples)
 
-    typer.echo(f"  {total_segments} segments, {len(all_examples)} training examples")
+    typer.echo(f"  {total_segments} segments")
+    typer.echo(f"  {len(train_examples)} train / {len(val_examples)} val examples "
+               f"({len(train_titles)} / {len(val_titles)} conversations)")
 
     # save as JSONL
     dataset_dir.mkdir(parents=True, exist_ok=True)
-    output_path = dataset_dir / "train.jsonl"
-    with open(output_path, "w") as f:
-        for example in all_examples:
-            f.write(json.dumps(example, ensure_ascii=False) + "\n")
 
-    typer.echo(f"Saved to {output_path}")
+    def _write_jsonl(path: Path, examples: list[dict]):
+        with open(path, "w") as f:
+            for example in examples:
+                f.write(json.dumps(example, ensure_ascii=False) + "\n")
+
+    _write_jsonl(dataset_dir / "train.jsonl", train_examples)
+    _write_jsonl(dataset_dir / "val.jsonl", val_examples)
+
+    typer.echo(f"Saved to {dataset_dir}/")
 
 
 @app.command()
-def train():
+def train(
+    config: Path = typer.Option(CONFIG_PATH, help="Path to config.yaml"),
+):
     """Fine-tune the model on your dataset."""
-    typer.echo("Not implemented yet.")
+    import logging
+
+    from my_llm_twin.training.trainer import run_training
+
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+
+    cfg = load_config(config)
+
+    typer.echo(f"Training with base model: {cfg.training.base_model}")
+    typer.echo(f"Dataset dir: {cfg.data.dataset_dir}")
+
+    run_training(
+        training_config=cfg.training,
+        dataset_config=cfg.dataset,
+        dataset_dir=Path(cfg.data.dataset_dir),
+    )
 
 
 @app.command()
