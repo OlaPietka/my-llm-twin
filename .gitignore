@@ -15,4 +15,3 @@ models/
 # IDE
 .vscode/
 .idea/
-data/parsed/
