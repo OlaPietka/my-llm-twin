@@ -31,7 +31,7 @@ def run_training(
     import torch
     from datasets import Dataset
     from peft import LoraConfig
-    from transformers import AutoModelForCausalLM, AutoTokenizer
+    from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
     from trl import SFTConfig, SFTTrainer
 
     if not torch.cuda.is_available():
@@ -62,17 +62,26 @@ def run_training(
 
     # load model and tokenizer
     logger.info(f"Loading model: {training_config.base_model}")
+    dtype = torch.bfloat16 if training_config.precision == "bf16" else torch.float16
     tokenizer = AutoTokenizer.from_pretrained(training_config.base_model)
-    model = AutoModelForCausalLM.from_pretrained(
-        training_config.base_model,
-        torch_dtype=torch.bfloat16 if training_config.precision == "bf16" else torch.float16,
-        device_map="auto",
-    )
 
     # register <|msg|> as a special token so it doesn't get split
     special_tokens = {"additional_special_tokens": [dataset_config.separator]}
     tokenizer.add_special_tokens(special_tokens)
-    model.resize_token_embeddings(len(tokenizer))
+
+    # Load in 4-bit to fit in 16GB VRAM with room for LoRA + optimizer states
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_compute_dtype=dtype,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_use_double_quant=True,
+    )
+    model = AutoModelForCausalLM.from_pretrained(
+        training_config.base_model,
+        quantization_config=bnb_config,
+        device_map="auto",
+    )
+    model.resize_token_embeddings(len(tokenizer), mean_resizing=False)
 
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
@@ -100,13 +109,15 @@ def run_training(
         per_device_train_batch_size=training_config.batch_size,
         gradient_accumulation_steps=training_config.gradient_accumulation_steps,
         learning_rate=training_config.learning_rate,
-        max_seq_length=training_config.max_seq_length,
+        max_length=training_config.max_seq_length,
         logging_steps=10,
         eval_strategy="steps" if val_dataset else "no",
         eval_steps=50 if val_dataset else None,
         save_strategy="epoch",
         bf16=training_config.precision == "bf16",
         fp16=training_config.precision == "fp16",
+        gradient_checkpointing=True,
+        gradient_checkpointing_kwargs={"use_reentrant": False},
     )
 
     trainer = SFTTrainer(

@@ -23,17 +23,7 @@ Download the ZIP and unzip it into `data/raw/`.
 
 ## After exporting
 
-Unzip into `data/raw/`:
-
-```
-data/raw/
-  your_facebook_activity/
-    messages/
-      inbox/
-        ...
-```
-
-Then run `my-llm-twin parse` to process the messages.
+Run `my-llm-twin parse` to process the messages.
 
 ## Note on Instagram
 

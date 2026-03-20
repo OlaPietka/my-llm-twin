@@ -28,3 +28,9 @@ dev = ["pytest>=8.0"]
 
 [project.scripts]
 my-llm-twin = "my_llm_twin.cli:app"
+
+[tool.setuptools.packages.find]
+# Only ship/import the actual Python package. The top-level `data/` directory
+# contains training/export artifacts and should not be considered a package.
+include = ["my_llm_twin*"]
+exclude = ["data*"]
