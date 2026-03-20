@@ -13,23 +13,26 @@ def make_test_zip(tmp_path: Path) -> Path:
     prefix = "your_facebook_activity/messages"
 
     files = {
-        # actual message files we want extracted
+        # inbox message files we want
         f"{prefix}/inbox/alice_123/message_1.json": {
+            "title": "Alice",
             "participants": [{"name": "Alice"}],
             "messages": [{"sender_name": "Alice", "content": "hey"}],
         },
         f"{prefix}/inbox/alice_123/message_2.json": {
+            "title": "Alice",
             "participants": [{"name": "Alice"}],
             "messages": [{"sender_name": "Alice", "content": "sup"}],
         },
         # other categories should be ignored
         f"{prefix}/e2ee_cutover/bob_456/message_1.json": {
+            "title": "Bob",
             "participants": [{"name": "Bob"}],
             "messages": [{"sender_name": "Bob", "content": "yo"}],
         },
         # metadata files should be ignored
         f"{prefix}/autofill_information.json": {"foo": "bar"},
-        # media files that should be ignored
+        # media files should be ignored
         f"{prefix}/inbox/alice_123/photos/pic.jpg": b"fake image",
     }
 
@@ -61,25 +64,28 @@ def test_find_message_files(tmp_path, extractor):
     assert not any("photos" in f for f in found)
 
 
-def test_extract(tmp_path, extractor):
+def test_read_messages(tmp_path, extractor):
     zip_path = make_test_zip(tmp_path)
-    output_dir = tmp_path / "extracted"
 
-    extracted = extractor.extract(zip_path, output_dir)
+    results = list(extractor.read_messages(zip_path))
 
-    assert len(extracted) == 2
-
-    # check files land in the right place with prefix stripped (no inbox/ in path)
-    alice_msg = output_dir / "alice_123" / "message_1.json"
-    assert alice_msg.exists()
-
-    data = json.loads(alice_msg.read_text())
-    assert data["messages"][0]["content"] == "hey"
-
-    # e2ee_cutover should NOT be extracted
-    assert not (output_dir / "bob_456").exists()
+    assert len(results) == 2
+    # both should be from alice's inbox conversation
+    assert all(r["title"] == "Alice" for r in results)
+    contents = [r["messages"][0]["content"] for r in results]
+    assert "hey" in contents
+    assert "sup" in contents
 
 
-def test_extract_nonexistent_zip(tmp_path, extractor):
+def test_read_messages_is_lazy(tmp_path, extractor):
+    """Verify read_messages returns an iterator, not a list."""
+    zip_path = make_test_zip(tmp_path)
+    result = extractor.read_messages(zip_path)
+    # should be a generator, not eagerly loaded
+    assert hasattr(result, "__next__")
+
+
+def test_read_messages_nonexistent_zip(tmp_path, extractor):
     with pytest.raises(FileNotFoundError):
-        extractor.extract(tmp_path / "nope.zip", tmp_path / "out")
+        # need to consume the iterator to trigger the error
+        list(extractor.read_messages(tmp_path / "nope.zip"))
