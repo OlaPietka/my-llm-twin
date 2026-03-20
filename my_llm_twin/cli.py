@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional
 
 import typer
 
@@ -180,6 +181,50 @@ def train(
 
 
 @app.command()
-def chat():
-    """Chat with your digital twin."""
-    typer.echo("Not implemented yet.")
+def chat(
+    config: Path = typer.Option(CONFIG_PATH, help="Path to config.yaml"),
+    temperature: Optional[float] = typer.Option(
+        None, help="Sampling temperature (default: from config)"
+    ),
+    max_tokens: Optional[int] = typer.Option(
+        None, "--max-tokens", help="Max new tokens to generate (default: from config)"
+    ),
+):
+    """Chat with your digital twin in the terminal."""
+    from my_llm_twin.chat.engine import ChatEngine
+
+    cfg = load_config(config)
+    temp = temperature if temperature is not None else cfg.chat.temperature
+    max_new = max_tokens if max_tokens is not None else cfg.chat.max_new_tokens
+
+    typer.echo(f"Loading model from {cfg.training.output_dir}...")
+    engine = ChatEngine(
+        model_dir=cfg.training.output_dir,
+        separator=cfg.dataset.separator,
+        temperature=temp,
+        max_new_tokens=max_new,
+        top_p=cfg.chat.top_p,
+    )
+    typer.echo("Ready! Type your message, /reset to clear history, or /quit to exit.\n")
+
+    while True:
+        try:
+            user_input = input("You: ").strip()
+        except (KeyboardInterrupt, EOFError):
+            typer.echo("\nBye!")
+            break
+
+        if not user_input:
+            continue
+        if user_input == "/quit":
+            typer.echo("Bye!")
+            break
+        if user_input == "/reset":
+            engine.reset()
+            typer.echo("History cleared.\n")
+            continue
+
+        parts = engine.generate(user_input)
+        for part in parts:
+            typer.echo(f"Twin: {part}")
+        typer.echo()

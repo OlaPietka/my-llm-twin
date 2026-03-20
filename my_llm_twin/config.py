@@ -42,12 +42,19 @@ class TrainingConfig(BaseModel):
     precision: str = "bf16"
 
 
+class ChatConfig(BaseModel):
+    temperature: float = 0.7
+    max_new_tokens: int = 256
+    top_p: float = 0.9
+
+
 class Config(BaseModel):
     user_names: UserNames
     data: DataPaths = DataPaths()
     parsing: ParsingConfig = ParsingConfig()
     dataset: DatasetConfig = DatasetConfig()
     training: TrainingConfig = TrainingConfig()
+    chat: ChatConfig = ChatConfig()
 
 
 def load_config(path: Path) -> Config:
